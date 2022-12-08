@@ -91,8 +91,11 @@ import { executablePath } from 'puppeteer';
           (el) => el.href,
           await page.$(`${foundersSelector} > a:nth-child(${i})`)
         );
+        //
+        
         founders.push({ founderName, founderLink });
       }
+
       // push all details to  data
       data.investments.push({
         ...company,
