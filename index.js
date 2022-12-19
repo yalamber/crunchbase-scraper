@@ -1,22 +1,45 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { executablePath } from 'puppeteer';
+import fs from 'fs';
+import { stringify } from 'csv-stringify';
+// import { executablePath } from 'puppeteer';
 
 (async () => {
   try {
     puppeteer.use(StealthPlugin());
-    const browser = await puppeteer.launch({
-      headless: false,
-      args: ['--no-sandbox'],
-      headless: false,
-      ignoreHTTPSErrors: true,
-      executablePath: executablePath(),
+    // const browser = await puppeteer.launch({
+    //   headless: false,
+    //   args: ['--no-sandbox'],
+    //   headless: false,
+    //   ignoreHTTPSErrors: true,
+    //   executablePath: executablePath(),
+    // });
+    const browserWSEndpoint =
+      'ws://127.0.0.1:9222/devtools/browser/e7303be6-701c-4d9e-bbba-6b45f419d3e6';
+    const browser = await puppeteer.connect({
+      browserWSEndpoint,
     });
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(0);
     // Set investor company recent investments url
     const investorUrl =
       'https://www.crunchbase.com/organization/uphonest-capital/recent_investments';
+    const InvestorCompanyName = 'Uphonest Capital';
+    const filename = './data/uphonest-capital.csv';
+    const writableStream = fs.createWriteStream(filename);
+    const columns = [
+      'InvestorCompany',
+      'InvestedCompanyName',
+      'CompanyCurnchbaseUrl',
+      'Industries',
+      'FounderName',
+      'FounderLinkedIn',
+    ];
+    const stringifier = stringify({ header: true, columns: columns });
+    stringifier.write({
+      InvestorCompany: InvestorCompanyName,
+    });
+    stringifier.pipe(writableStream);
     await page.goto(investorUrl);
     // Table selector for list of recent investments
     const investmentTableSelector =
@@ -76,6 +99,11 @@ import { executablePath } from 'puppeteer';
         );
         industries.push(industryName);
       }
+      stringifier.write({
+        InvestorCompany: '',
+        InvestedCompanyName: company.companyName,
+        Industries: industries.join(', '),
+      });
       // get count for founders
       const foundersCount = await page.$$eval(
         `${foundersSelector} > a`,
@@ -91,9 +119,28 @@ import { executablePath } from 'puppeteer';
           (el) => el.href,
           await page.$(`${foundersSelector} > a:nth-child(${i})`)
         );
-        //
-        
         founders.push({ founderName, founderLink });
+      }
+      let i = 0;
+      for (const founder of founders) {
+        await page.goto(founder.founderLink, {
+          waitUntil: 'domcontentloaded',
+        });
+        // TODO: proper selector for linked in link
+        const founderLinkedinLink = await page.evaluate(
+          (el) => el?.href,
+          await page.$(`a[title="View on LinkedIn"]`) // todo update selector to get linked by title attribute
+        );
+        founders[i].founderLinkedinLink = founderLinkedinLink;
+        stringifier.write({
+          InvestorCompany: '',
+          InvestedCompanyName: '',
+          Industries: '',
+          FounderName: founder.founderName,
+          FounderLinkedIn: founderLinkedinLink,
+        });
+        await new Promise((_func) => setTimeout(_func, 2000));
+        i++;
       }
 
       // push all details to  data
