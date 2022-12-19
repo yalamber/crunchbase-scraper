@@ -14,6 +14,11 @@ import { stringify } from 'csv-stringify';
     //   ignoreHTTPSErrors: true,
     //   executablePath: executablePath(),
     // });
+    // Set investor company recent investments url
+    const InvestorUrl =
+      'https://www.crunchbase.com/organization/uphonest-capital/recent_investments';
+    const InvestorCompanyName = 'Uphonest Capital';
+    const filename = './data/uphonest-capital.csv';
     const browserWSEndpoint =
       'ws://127.0.0.1:9222/devtools/browser/e7303be6-701c-4d9e-bbba-6b45f419d3e6';
     const browser = await puppeteer.connect({
@@ -21,11 +26,6 @@ import { stringify } from 'csv-stringify';
     });
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(0);
-    // Set investor company recent investments url
-    const investorUrl =
-      'https://www.crunchbase.com/organization/uphonest-capital/recent_investments';
-    const InvestorCompanyName = 'Uphonest Capital';
-    const filename = './data/uphonest-capital.csv';
     const writableStream = fs.createWriteStream(filename);
     const columns = [
       'InvestorCompany',
@@ -40,7 +40,7 @@ import { stringify } from 'csv-stringify';
       InvestorCompany: InvestorCompanyName,
     });
     stringifier.pipe(writableStream);
-    await page.goto(investorUrl);
+    await page.goto(InvestorUrl);
     // Table selector for list of recent investments
     const investmentTableSelector =
       'body > chrome > div > mat-sidenav-container > mat-sidenav-content > div > ng-component > entity-v2 > page-layout > div > div > div > div > page-centered-layout > div > div > div.main-content > row-card:nth-child(1) > profile-section > section-card > mat-card > div.section-content-wrapper > div > list-card > div > table > tbody';
@@ -51,7 +51,7 @@ import { stringify } from 'csv-stringify';
     );
     // set initial data object to set all data into
     const data = {
-      investorUrl,
+      InvestorUrl,
       investments: [],
     };
     // Set Invested companies list
