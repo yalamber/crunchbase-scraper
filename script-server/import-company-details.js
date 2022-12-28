@@ -10,7 +10,7 @@ Airtable.configure({
   apiKey: process.env.AIRTABLE_API_KEY,
 });
 const base = Airtable.base(process.env.AIRTABLE_BASE);
-
+const tableName = 'table1';
 (async function () {
   try {
     puppeteer.use(StealthPlugin());
@@ -22,7 +22,7 @@ const base = Airtable.base(process.env.AIRTABLE_BASE);
     });
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(0);
-    const records = await base('CrunchData')
+    const records = await base(tableName)
       .select({
         maxRecords: 1,
         view: 'CompanyViewPending',
@@ -38,9 +38,10 @@ const base = Airtable.base(process.env.AIRTABLE_BASE);
     // get industries and founders
     const industries = [];
     const founders = [];
-    // Selector path for industry and founders
+    // TODO: proper Selector path for industry and founders
     const industrySelector =
       'body > chrome > div > mat-sidenav-container > mat-sidenav-content > div > ng-component > entity-v2 > page-layout > div > div > div > div > page-centered-layout > div > div > div.main-content > row-card:nth-child(1) > profile-section > section-card > mat-card > div.section-content-wrapper > div > fields-card:nth-child(1) > ul > li:nth-child(1) > field-formatter > identifier-multi-formatter > span > chips-container';
+    // TODO: add company address
     const foundersSelector =
       'body > chrome > div > mat-sidenav-container > mat-sidenav-content > div > ng-component > entity-v2 > page-layout > div > div > div > div > page-centered-layout > div > div > div.main-content > row-card:nth-child(1) > profile-section > section-card > mat-card > div.section-content-wrapper > div > fields-card:nth-child(1) > ul > li:nth-child(4) > field-formatter > identifier-multi-formatter > span';
     // get count for industries
@@ -73,7 +74,7 @@ const base = Airtable.base(process.env.AIRTABLE_BASE);
       );
       founders.push({ founderName, founderLink });
     }
-    await base('CrunchData').update([
+    await base(tableName).update([
       {
         id: record.getId(),
         fields: {

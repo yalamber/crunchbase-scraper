@@ -10,7 +10,7 @@ Airtable.configure({
   apiKey: process.env.AIRTABLE_API_KEY,
 });
 const base = Airtable.base(process.env.AIRTABLE_BASE);
-
+const tableName = 'table1';
 (async function () {
   try {
     puppeteer.use(StealthPlugin());
@@ -22,7 +22,7 @@ const base = Airtable.base(process.env.AIRTABLE_BASE);
     });
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(0);
-    const records = await base('CrunchData')
+    const records = await base(tableName)
       .select({
         maxRecords: 1,
         view: 'CompanyViewPending',
@@ -73,7 +73,7 @@ const base = Airtable.base(process.env.AIRTABLE_BASE);
       );
       founders.push({ founderName, founderLink });
     }
-    await base('CrunchData').update([
+    await base(tableName).update([
       {
         id: record.getId(),
         fields: {

@@ -10,6 +10,7 @@ Airtable.configure({
   apiKey: process.env.AIRTABLE_API_KEY,
 });
 const base = Airtable.base(process.env.AIRTABLE_BASE);
+const tableName = 'table1';
 
 (async function () {
   try {
@@ -22,7 +23,7 @@ const base = Airtable.base(process.env.AIRTABLE_BASE);
     });
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(0);
-    const records = await base('CrunchData')
+    const records = await base(tableName)
       .select({
         maxRecords: 1,
         view: 'InvestmentCompany',
@@ -67,7 +68,7 @@ const base = Airtable.base(process.env.AIRTABLE_BASE);
       });
     }
     console.log(investedCompanies);
-    await base('CrunchData').create(investedCompanies);
+    await base(tableName).create(investedCompanies);
     await browser.close();
   } catch (e) {
     console.log(e);
