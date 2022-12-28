@@ -4,23 +4,26 @@ import fs from 'fs';
 import { stringify } from 'csv-stringify';
 // import { executablePath } from 'puppeteer';
 
+async function checkAndWaitForAccessDeniedPage(page) {
+  const checkDenied = await page.waitForXPath(
+    '//*[contains(text(), "Please verify you are a human")]',
+    5000
+  );
+  if (checkDenied) {
+    await checkAndWaitForAccessDeniedPage(page);
+  }
+  return true;
+}
+
 (async () => {
   try {
     puppeteer.use(StealthPlugin());
-    // const browser = await puppeteer.launch({
-    //   headless: false,
-    //   args: ['--no-sandbox'],
-    //   headless: false,
-    //   ignoreHTTPSErrors: true,
-    //   executablePath: executablePath(),
-    // });
-    // Set investor company recent investments url
     const InvestorUrl =
-      'https://www.crunchbase.com/organization/uphonest-capital/recent_investments';
+      'https://www.crunchbase.com/organization/uphonest-capital/recent_investments/investments';
     const InvestorCompanyName = 'Uphonest Capital';
     const filename = './data/uphonest-capital.csv';
     const browserWSEndpoint =
-      'ws://127.0.0.1:9222/devtools/browser/e7303be6-701c-4d9e-bbba-6b45f419d3e6';
+      'ws://127.0.0.1:9222/devtools/browser/264ea4ec-d1d7-43db-bf45-4354fb0ccd7e';
     const browser = await puppeteer.connect({
       browserWSEndpoint,
     });
@@ -41,9 +44,11 @@ import { stringify } from 'csv-stringify';
     });
     stringifier.pipe(writableStream);
     await page.goto(InvestorUrl);
+    // TODO: check if access denied page
+    await checkAndWaitForAccessDeniedPage(page);
     // Table selector for list of recent investments
     const investmentTableSelector =
-      'body > chrome > div > mat-sidenav-container > mat-sidenav-content > div > ng-component > entity-v2 > page-layout > div > div > div > div > page-centered-layout > div > div > div.main-content > row-card:nth-child(1) > profile-section > section-card > mat-card > div.section-content-wrapper > div > list-card > div > table > tbody';
+      'body > chrome > div > mat-sidenav-container > mat-sidenav-content > div > ng-component > entity-v2 > page-layout > div > div > div > div > div > page-centered-layout:nth-child(2) > div > profile-section > section-card > mat-card > div.section-content-wrapper > div > list-card > div > table > tbody';
     // Total loaded row count for investment table
     const investmentRowCount = await page.$$eval(
       `${investmentTableSelector} > tr`,
@@ -72,12 +77,15 @@ import { stringify } from 'csv-stringify';
       );
       investedCompanies.push({ companyName, companyLink });
     }
+    await new Promise((_func) => setTimeout(_func, 5000));
     // iterate through all company to get required data
     for (const company of investedCompanies) {
       // load company link
       await page.goto(company.companyLink, {
         waitUntil: 'domcontentloaded',
       });
+      // TODO: check if access denied page
+      await checkAndWaitForAccessDeniedPage(page);
       // get industries and founders
       const industries = [];
       const founders = [];
@@ -102,6 +110,7 @@ import { stringify } from 'csv-stringify';
       stringifier.write({
         InvestorCompany: '',
         InvestedCompanyName: company.companyName,
+        CompanyCurnchbaseUrl: company.companyLink,
         Industries: industries.join(', '),
       });
       // get count for founders
@@ -122,11 +131,12 @@ import { stringify } from 'csv-stringify';
         founders.push({ founderName, founderLink });
       }
       let i = 0;
+      await new Promise((_func) => setTimeout(_func, 5000));
       for (const founder of founders) {
         await page.goto(founder.founderLink, {
           waitUntil: 'domcontentloaded',
         });
-        // TODO: proper selector for linked in link
+        await checkAndWaitForAccessDeniedPage(page);
         const founderLinkedinLink = await page.evaluate(
           (el) => el?.href,
           await page.$(`a[title="View on LinkedIn"]`) // todo update selector to get linked by title attribute
@@ -139,10 +149,9 @@ import { stringify } from 'csv-stringify';
           FounderName: founder.founderName,
           FounderLinkedIn: founderLinkedinLink,
         });
-        await new Promise((_func) => setTimeout(_func, 2000));
+        await new Promise((_func) => setTimeout(_func, 5000));
         i++;
       }
-
       // push all details to  data
       data.investments.push({
         ...company,
@@ -152,7 +161,7 @@ import { stringify } from 'csv-stringify';
       await new Promise((_func) => setTimeout(_func, 5000));
     }
     console.log(JSON.stringify(data));
-    await browser.close();
+    //await browser.close();
   } catch (e) {
     console.log(e);
   }
